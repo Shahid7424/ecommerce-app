@@ -1,10 +1,9 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-"use client"
+"use client";
+
 import React from 'react';
 import { X, Plus, Minus, Trash2, ShoppingBag, Tag } from 'lucide-react';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-
 
 interface CartItem {
   id: string;
@@ -31,6 +30,12 @@ export const Cart: React.FC<CartProps> = ({
   onUpdateQuantity,
   onRemoveItem
 }) => {
+  // ✅ FIX: ALL hooks must be called BEFORE any early return
+  // Previously useSession/useRouter were after `if (!isOpen) return null`
+  // which broke React's Rules of Hooks → caused "Expected static flag" error
+  const { data: session } = useSession();
+  const router = useRouter();
+
   // Calculate totals
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const savings = items.reduce((sum, item) => {
@@ -46,28 +51,22 @@ export const Cart: React.FC<CartProps> = ({
     return `₹${price.toLocaleString('en-IN')}`;
   };
 
+  const handleCheckout = () => {
+    onClose();
+    if (!session) {
+      router.push("/login?callbackUrl=/checkout");
+      return;
+    }
+    router.push("/checkout");
+  };
+
+  // ✅ Early return AFTER all hooks
   if (!isOpen) return null;
-
-const handleCheckout = () => {
-  onClose(); // 👈 close drawer
-
-  if (!session) {
-    router.push("/login?callbackUrl=/checkout");
-    return;
-  }
-
-  router.push("/checkout");
-};
-
-const { data: session } = useSession();
-const router = useRouter();  
-
-
 
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         onClick={onClose}
         className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
       />
@@ -80,7 +79,7 @@ const router = useRouter();
             <ShoppingBag size={24} />
             <h2 className="text-xl font-bold">Shopping Cart</h2>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 hover:bg-indigo-700 rounded-full transition"
           >
@@ -95,7 +94,7 @@ const router = useRouter();
               <ShoppingBag size={80} className="text-gray-300 mb-4" />
               <h3 className="text-xl font-semibold text-gray-700 mb-2">Your cart is empty</h3>
               <p className="text-gray-500 mb-6">Add items to get started!</p>
-              <button 
+              <button
                 onClick={onClose}
                 className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
               >
@@ -119,7 +118,7 @@ const router = useRouter();
                     <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">
                       {item.title}
                     </h4>
-                    
+
                     {/* Price */}
                     <div className="flex items-baseline space-x-2 mb-2">
                       <span className="text-lg font-bold text-gray-900">
@@ -190,7 +189,7 @@ const router = useRouter();
                 <span className="text-gray-600">Subtotal</span>
                 <span className="font-semibold">{formatPrice(subtotal)}</span>
               </div>
-              
+
               {savings > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span className="flex items-center">
@@ -221,14 +220,14 @@ const router = useRouter();
             </div>
 
             {/* Checkout Button */}
-           <button
-  onClick={handleCheckout}
-  className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-lg shadow-lg transition-all transform hover:scale-105"
->
-  Proceed to Checkout
-</button>
+            <button
+              onClick={handleCheckout}
+              className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-lg shadow-lg transition-all transform hover:scale-105"
+            >
+              Proceed to Checkout
+            </button>
 
-            <button 
+            <button
               onClick={onClose}
               className="w-full py-2 text-indigo-600 hover:bg-indigo-50 font-medium rounded-lg transition"
             >
@@ -241,5 +240,4 @@ const router = useRouter();
   );
 };
 
-// ✅ DEFAULT EXPORT
 export default Cart;

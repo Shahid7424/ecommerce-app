@@ -21,13 +21,18 @@ export default function ShopClient() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, Infinity]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
-  useEffect(() => { setMounted(true); }, []);
-
+  // ✅ Merged mounted + localStorage into ONE effect to prevent race condition
   useEffect(() => {
-    const stored = localStorage.getItem("cart");
-    if (stored) setCart(JSON.parse(stored));
+    setMounted(true);
+    try {
+      const stored = localStorage.getItem("cart");
+      if (stored) setCart(JSON.parse(stored));
+    } catch {
+      // Ignore corrupted localStorage data
+    }
   }, []);
 
+  // ✅ Fetch products
   useEffect(() => {
     async function loadProducts() {
       try {
@@ -41,16 +46,14 @@ export default function ShopClient() {
     loadProducts();
   }, []);
 
-  // ✅ FIXED: Now uses ALL filter states, not just search + category
+  // ✅ All filters applied
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === "All" || p.category === selectedCategory;
       const matchesRating = selectedRating === null || p.rating >= selectedRating;
       const matchesPrice = p.price >= priceRange[0] && p.price <= priceRange[1];
-      const matchesBrand =
-        selectedBrands.length === 0 || selectedBrands.includes(p.brand);
-
+      const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(p.brand);
       return matchesSearch && matchesCategory && matchesRating && matchesPrice && matchesBrand;
     });
   }, [products, searchQuery, selectedCategory, selectedRating, priceRange, selectedBrands]);
@@ -91,19 +94,32 @@ export default function ShopClient() {
     });
   };
 
+  // ✅ Matches onBrandToggle(brand: string) in Filters.tsx
+  const handleBrandToggle = (brand: string) => {
+    setSelectedBrands(prev =>
+      prev.includes(brand)
+        ? prev.filter(b => b !== brand)
+        : [...prev, brand]
+    );
+  };
+
+  // ✅ Matches onClearFilters() in Filters.tsx
+  const handleClearFilters = () => {
+    setSelectedCategory("All");
+    setSelectedRating(null);
+    setPriceRange([0, Infinity]);
+    setSelectedBrands([]);
+    setSearchQuery("");
+  };
+
   const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
 
-  // Derive dynamic filter options from loaded products
   const categories = useMemo(
     () => ["All", ...Array.from(new Set(products.map(p => p.category)))],
     [products]
   );
   const brands = useMemo(
     () => Array.from(new Set(products.map(p => p.brand).filter(Boolean))),
-    [products]
-  );
-  const maxPrice = useMemo(
-    () => Math.max(...products.map(p => p.price), 0),
     [products]
   );
 
@@ -120,23 +136,19 @@ export default function ShopClient() {
 
       <div className="max-w-7xl mx-auto px-6 py-8 flex gap-6">
 
-        {/* ✅ FIX: Filters panel is now actually rendered here */}
         <aside className="w-64 flex-shrink-0">
           <Filters
             categories={categories}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
-
             brands={brands}
             selectedBrands={selectedBrands}
-            onBrandsChange={setSelectedBrands}
-
+            onBrandToggle={handleBrandToggle}
             selectedRating={selectedRating}
             onRatingChange={setSelectedRating}
-
             priceRange={priceRange}
-            maxPrice={maxPrice}
             onPriceRangeChange={setPriceRange}
+            onClearFilters={handleClearFilters}
           />
         </aside>
 
@@ -157,13 +169,15 @@ export default function ShopClient() {
         </main>
       </div>
 
-      <Cart
-        isOpen={showCart}
-        onClose={() => setShowCart(false)}
-        items={cart}
-        onUpdateQuantity={updateQuantity}
-        onRemoveItem={removeFromCart}
-      />
+      {mounted && (
+        <Cart
+          isOpen={showCart}
+          onClose={() => setShowCart(false)}
+          items={cart}
+          onUpdateQuantity={updateQuantity}
+          onRemoveItem={removeFromCart}
+        />
+      )}
     </div>
   );
 }

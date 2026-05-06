@@ -52,6 +52,9 @@ export default function CheckoutPage() {
   const delivery = subtotal > 500 ? 0 : 40;
   const total = subtotal + delivery;
 
+  // ✅ Convert ₹ to USD for PayPal (PayPal doesn't support INR)
+  const totalInUSD = (total / 84).toFixed(2);
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Checkout</h1>
@@ -76,39 +79,54 @@ export default function CheckoutPage() {
           ) : (
             <>
               <p>Items: ₹{subtotal}</p>
-              <p>
-                Delivery: {delivery === 0 ? "FREE" : `₹${delivery}`}
-              </p>
+              <p>Delivery: {delivery === 0 ? "FREE" : `₹${delivery}`}</p>
               <p className="font-bold mt-2">Total: ₹{total}</p>
+              <p className="text-xs text-gray-400 mb-4">≈ ${totalInUSD} USD (charged via PayPal)</p>
 
               {/* 💳 PAYPAL BUTTON */}
               <div className="mt-4">
                 <PayPalScriptProvider
                   options={{
                     clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
+                    currency: "USD",
+                    intent: "capture",
                   }}
                 >
                   <PayPalButtons
                     style={{ layout: "vertical" }}
-                    createOrder={(data, actions) => {
+                    createOrder={(_data, actions) => {
+                      // ✅ FIX 2: null check on actions.order
+                      if (!actions.order) {
+                        return Promise.reject(new Error("PayPal order actions unavailable"));
+                      }
+
                       return actions.order.create({
+                        intent: "CAPTURE",
                         purchase_units: [
                           {
                             amount: {
-                              value: total.toString(),
+                              // ✅ FIX 1: currency_code is now included (required field)
+                              currency_code: "USD",
+                              value: totalInUSD,
                             },
+                            description: "Order from MyShop",
                           },
                         ],
                       });
                     }}
-                    onApprove={(data, actions) => {
+                    onApprove={(_data, actions) => {
+                      // ✅ FIX 2: null check on actions.order before capture
+                      if (!actions.order) {
+                        return Promise.reject(new Error("PayPal order actions unavailable"));
+                      }
+
                       return actions.order.capture().then(() => {
                         alert("Payment Successful 🎉");
 
-                        // ✅ clear cart
+                        // ✅ Clear cart
                         localStorage.removeItem("cart");
 
-                        // ✅ redirect
+                        // ✅ Redirect to success page
                         router.push("/success");
                       });
                     }}
@@ -118,7 +136,7 @@ export default function CheckoutPage() {
                       } else {
                         console.error("Payment error", err);
                       }
-                      alert("Payment failed");
+                      alert("Payment failed. Please try again.");
                     }}
                   />
                 </PayPalScriptProvider>
