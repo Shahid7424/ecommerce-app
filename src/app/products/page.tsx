@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,7 +13,7 @@ export default function ProductsPage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [items, setItems] = useState<any[]>([]);
 
-  // ✅ Fetch products (SAFE VERSION)
+  // ✅ Fetch products
   useEffect(() => {
     async function fetchProducts() {
       try {
@@ -24,7 +25,6 @@ export default function ProductsPage() {
 
         const data = await res.json();
 
-        // ✅ Important: check structure
         if (data.success) {
           setProducts(data.products);
         } else {
@@ -40,18 +40,15 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
-  // ✅ Add to cart (FIXED ID ISSUE)
+  // ✅ Add to cart
   const handleAddToCart = (product: Product) => {
-    const id = product.id; // ✅ FIX: remove _id (not present)
-
+    const id = product.id;
     const exists = items.find((i) => i.id === id);
 
     if (exists) {
       setItems(
         items.map((i) =>
-          i.id === id
-            ? { ...i, quantity: i.quantity + 1 }
-            : i
+          i.id === id ? { ...i, quantity: i.quantity + 1 } : i
         )
       );
     } else {
@@ -62,12 +59,29 @@ export default function ProductsPage() {
           title: product.title,
           price: product.price,
           images: product.images,
+          brand: product.brand ?? "",
           quantity: 1,
         },
       ]);
     }
 
     setCartOpen(true);
+  };
+
+  // ✅ FIX: matches Cart's onUpdateQuantity(id: string, quantity: number)
+  const handleUpdateQuantity = (id: string, quantity: number) => {
+    if (quantity <= 0) {
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    } else {
+      setItems((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, quantity } : i))
+      );
+    }
+  };
+
+  // ✅ FIX: matches Cart's onRemoveItem(id: string)
+  const handleRemoveItem = (id: string) => {
+    setItems((prev) => prev.filter((i) => i.id !== id));
   };
 
   if (loading) {
@@ -79,16 +93,16 @@ export default function ProductsPage() {
       <ProductGrid
         products={products}
         onAddToCart={handleAddToCart}
-        onProductClick={(product) =>
-          console.log("Open product", product)
-        }
+        onProductClick={(product) => console.log("Open product", product)}
       />
 
+      {/* ✅ FIX: replaced onUpdateItems with correct prop names */}
       <Cart
         isOpen={cartOpen}
         onClose={() => setCartOpen(false)}
         items={items}
-        onUpdateItems={setItems}
+        onUpdateQuantity={handleUpdateQuantity}
+        onRemoveItem={handleRemoveItem}
       />
     </div>
   );

@@ -1,10 +1,10 @@
 "use client";
 
 import { signIn, useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginContent() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 👉 If already logged in, redirect
+  // Redirect if already logged in
   useEffect(() => {
     if (session) {
       router.push(callbackUrl);
@@ -30,7 +30,7 @@ export default function LoginPage() {
     const res = await signIn("credentials", {
       email,
       password,
-      redirect: false, // 👈 important
+      redirect: false,
     });
 
     setLoading(false);
@@ -38,7 +38,7 @@ export default function LoginPage() {
     if (res?.error) {
       setError("Invalid email or password");
     } else {
-      router.push(callbackUrl); // 👈 go to checkout or previous page
+      router.push(callbackUrl);
     }
   };
 
@@ -49,7 +49,6 @@ export default function LoginPage() {
           Login to ShopEase
         </h2>
 
-        {/* Email */}
         <input
           type="email"
           placeholder="Email"
@@ -57,7 +56,6 @@ export default function LoginPage() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        {/* Password */}
         <input
           type="password"
           placeholder="Password"
@@ -65,12 +63,10 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        {/* Error */}
         {error && (
           <p className="text-red-500 text-sm mb-3">{error}</p>
         )}
 
-        {/* Button */}
         <button
           onClick={handleLogin}
           disabled={loading}
@@ -79,11 +75,18 @@ export default function LoginPage() {
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* Optional */}
         <p className="text-sm text-gray-500 text-center mt-4">
           Don’t have an account? Register later
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
