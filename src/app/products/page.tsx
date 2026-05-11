@@ -1,109 +1,139 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/app/products/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { ProductGrid } from "../components/ProductCard";
+import { useEffect, useState, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import ProductCard from "../components/ProductCard";
+import { resolveCategory } from "../lib/categories";
+import { ProductGridSkeleton } from "../components/Productcardskelton";
 import Cart from "../components/Cart";
+import Header from "../components/Header";
+import { useCart } from "../hooks/useCart";
 import type { Product } from "../types/product";
+import { Search } from "lucide-react";
 
-export default function ProductsPage() {
+function ProductsContent() {
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("cat");
+  const queryParam = searchParams.get("q") ?? "";
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [cartOpen, setCartOpen] = useState(false);
-  const [items, setItems] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState(queryParam);
 
-  // ✅ Fetch products
+  // ✅ Same cart source as homepage — state is shared via localStorage
+  const {
+    cart,
+    hydrated,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    totalItems,
+  } = useCart();
+
+  // Fetch products
   useEffect(() => {
-    async function fetchProducts() {
+    let cancelled = false;
+    (async () => {
       try {
         const res = await fetch("/api/products");
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch products");
-        }
-
+        if (!res.ok) throw new Error("Failed to fetch products");
         const data = await res.json();
-
-        if (data.success) {
-          setProducts(data.products);
-        } else {
-          console.error("API returned error:", data);
-        }
-      } catch (error) {
-        console.error("Frontend fetch error:", error);
+        if (!cancelled && data.success) setProducts(data.products);
+      } catch (err) {
+        console.error("Frontend fetch error:", err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    }
-
-    fetchProducts();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // ✅ Add to cart
-  const handleAddToCart = (product: Product) => {
-    const id = product.id;
-    const exists = items.find((i) => i.id === id);
-
-    if (exists) {
-      setItems(
-        items.map((i) =>
-          i.id === id ? { ...i, quantity: i.quantity + 1 } : i
-        )
-      );
-    } else {
-      setItems([
-        ...items,
-        {
-          id,
-          title: product.title,
-          price: product.price,
-          images: product.images,
-          brand: product.brand ?? "",
-          quantity: 1,
-        },
-      ]);
-    }
-
-    setCartOpen(true);
-  };
-
-  // ✅ FIX: matches Cart's onUpdateQuantity(id: string, quantity: number)
-  const handleUpdateQuantity = (id: string, quantity: number) => {
-    if (quantity <= 0) {
-      setItems((prev) => prev.filter((i) => i.id !== id));
-    } else {
-      setItems((prev) =>
-        prev.map((i) => (i.id === id ? { ...i, quantity } : i))
-      );
-    }
-  };
-
-  // ✅ FIX: matches Cart's onRemoveItem(id: string)
-  const handleRemoveItem = (id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-  };
-
-  if (loading) {
-    return <p className="p-6">Loading products…</p>;
-  }
+  // Filter by ?cat= and ?q=
+  // ✅ REPLACE WITH THIS — uses resolveCategory()
+const filtered = useMemo(() => {
+  const allowedCategories = resolveCategory(categoryParam);
+  return products.filter((p) => {
+    const matchesCategory =
+      !allowedCategories ||
+      allowedCategories.includes(p.category.toLowerCase());
+    const matchesQuery =
+      !searchQuery ||
+      p.title.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesQuery;
+  });
+}, [products, categoryParam, searchQuery]);
 
   return (
-    <div className="p-6">
-      <ProductGrid
-        products={products}
-        onAddToCart={handleAddToCart}
-        onProductClick={(product) => console.log("Open product", product)}
+    <div className="min-h-screen bg-slate-50">
+      <Header
+        cartCount={hydrated ? totalItems : 0}
+        onCartClick={() => setCartOpen(true)}
+        onSearchChange={setSearchQuery}
+        searchQuery={searchQuery}
       />
 
-      {/* ✅ FIX: replaced onUpdateItems with correct prop names */}
-      <Cart
-        isOpen={cartOpen}
-        onClose={() => setCartOpen(false)}
-        items={items}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-      />
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            {categoryParam
+              ? categoryParam.charAt(0).toUpperCase() + categoryParam.slice(1)
+              : "All Products"}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {loading ? "Loading…" : `${filtered.length} products`}
+          </p>
+        </div>
+
+        {loading ? (
+          <ProductGridSkeleton count={8} />
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl bg-white py-20 ring-1 ring-slate-200">
+            <div className="grid h-16 w-16 place-items-center rounded-full bg-slate-100">
+              <Search size={28} className="text-slate-400" />
+            </div>
+            <h3 className="mt-4 text-lg font-semibold text-slate-900">
+              No products found
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Try a different category or search.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filtered.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={addToCart}
+                onProductClick={(p) => console.log("Open product", p.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {hydrated && (
+        <Cart
+          isOpen={cartOpen}
+          onClose={() => setCartOpen(false)}
+          items={cart.map(item => ({ ...item, id: item.id! }))}
+          onUpdateQuantity={updateQuantity}
+          onRemoveItem={removeFromCart}
+        />
+      )}
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  // useSearchParams requires Suspense in Next 16
+  return (
+    <Suspense fallback={<ProductGridSkeleton count={8} />}>
+      <ProductsContent />
+    </Suspense>
   );
 }

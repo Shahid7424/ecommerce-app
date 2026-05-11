@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { X, Plus, Minus, Trash2, ShoppingBag, Tag } from 'lucide-react';
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -30,13 +31,9 @@ export const Cart: React.FC<CartProps> = ({
   onUpdateQuantity,
   onRemoveItem
 }) => {
-  // ✅ FIX: ALL hooks must be called BEFORE any early return
-  // Previously useSession/useRouter were after `if (!isOpen) return null`
-  // which broke React's Rules of Hooks → caused "Expected static flag" error
   const { data: session } = useSession();
   const router = useRouter();
 
-  // Calculate totals
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const savings = items.reduce((sum, item) => {
     if (item.originalPrice) {
@@ -47,9 +44,7 @@ export const Cart: React.FC<CartProps> = ({
   const deliveryFee = subtotal > 500 ? 0 : 40;
   const total = subtotal + deliveryFee;
 
-  const formatPrice = (price: number) => {
-    return `₹${price.toLocaleString('en-IN')}`;
-  };
+  const formatPrice = (price: number) => `₹${price.toLocaleString('en-IN')}`;
 
   const handleCheckout = () => {
     onClose();
@@ -60,18 +55,12 @@ export const Cart: React.FC<CartProps> = ({
     router.push("/checkout");
   };
 
-  // ✅ Early return AFTER all hooks
   if (!isOpen) return null;
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
-      />
+      <div onClick={onClose} className="fixed inset-0 bg-black/50 z-40" />
 
-      {/* Cart Sidebar */}
       <div className="fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-indigo-600 text-white">
@@ -81,6 +70,7 @@ export const Cart: React.FC<CartProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close cart"
             className="p-2 hover:bg-indigo-700 rounded-full transition"
           >
             <X size={24} />
@@ -105,21 +95,23 @@ export const Cart: React.FC<CartProps> = ({
             <div className="space-y-4">
               {items.map((item) => (
                 <div key={item.id} className="flex space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  {/* Product Image */}
-                  <img
-                    src={item.images[0]}
-                    alt={item.title}
-                    className="w-20 h-20 object-contain bg-white rounded border"
-                  />
+                  {/* ✅ next/image with wrapper for `fill` */}
+                  <div className="relative w-20 h-20 shrink-0 bg-white rounded border overflow-hidden">
+                    <Image
+                      src={item.images[0] || "https://placehold.co/80x80?text=No+Image"}
+                      alt={item.title}
+                      fill
+                      sizes="80px"
+                      className="object-contain p-1"
+                    />
+                  </div>
 
-                  {/* Product Details */}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-500 uppercase">{item.brand}</p>
                     <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">
                       {item.title}
                     </h4>
 
-                    {/* Price */}
                     <div className="flex items-baseline space-x-2 mb-2">
                       <span className="text-lg font-bold text-gray-900">
                         {formatPrice(item.price)}
@@ -131,12 +123,12 @@ export const Cart: React.FC<CartProps> = ({
                       )}
                     </div>
 
-                    {/* Quantity Controls */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg">
                         <button
                           onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
                           disabled={item.quantity <= 1}
+                          aria-label="Decrease quantity"
                           className="p-1.5 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-l-lg"
                         >
                           <Minus size={14} />
@@ -147,15 +139,16 @@ export const Cart: React.FC<CartProps> = ({
                         <button
                           onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
                           disabled={item.quantity >= 10}
+                          aria-label="Increase quantity"
                           className="p-1.5 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-r-lg"
                         >
                           <Plus size={14} />
                         </button>
                       </div>
 
-                      {/* Remove Button */}
                       <button
                         onClick={() => onRemoveItem(item.id)}
+                        aria-label="Remove item"
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                       >
                         <Trash2 size={16} />
@@ -168,14 +161,14 @@ export const Cart: React.FC<CartProps> = ({
           )}
         </div>
 
-        {/* Footer - Price Summary */}
+        {/* Footer */}
         {items.length > 0 && (
           <div className="border-t bg-gray-50 p-4 space-y-3">
-            {/* Coupon Code */}
             <div className="flex items-center space-x-2">
               <input
                 type="text"
                 placeholder="Enter coupon code"
+                aria-label="Coupon code"
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <button className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium transition">
@@ -183,7 +176,6 @@ export const Cart: React.FC<CartProps> = ({
               </button>
             </div>
 
-            {/* Price Breakdown */}
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
@@ -219,7 +211,6 @@ export const Cart: React.FC<CartProps> = ({
               </div>
             </div>
 
-            {/* Checkout Button */}
             <button
               onClick={handleCheckout}
               className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-lg shadow-lg transition-all transform hover:scale-105"
