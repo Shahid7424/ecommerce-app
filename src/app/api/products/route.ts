@@ -5,7 +5,6 @@ export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    // ✅ limit=0 → sare 194 products, revalidate = 1 hour cache
     const res = await fetch("https://dummyjson.com/products?limit=0", {
       next: { revalidate: 3600 },
     });
@@ -21,15 +20,15 @@ export async function GET() {
     }
 
     const products = data.products.map((p: any) => {
-      const priceINR = Math.round(p.price * 84);
-      const originalINR = Math.round(priceINR * (1 + (p.discountPercentage || 10) / 100));
+      const priceUSD = Math.round(p.price * 100) / 100;
+      const originalUSD = Math.round(priceUSD * (1 + (p.discountPercentage || 10) / 100) * 100) / 100;
 
       return {
         id: p.id.toString(),
         title: p.title,
         description: p.description,
-        price: priceINR,
-        originalPrice: originalINR,
+        price: priceUSD,
+        originalPrice: originalUSD,
         discount: Math.round(p.discountPercentage || 10),
         rating: p.rating,
         reviewCount: p.reviews?.length || Math.floor(Math.random() * 500) + 50,
@@ -44,7 +43,6 @@ export async function GET() {
 
   } catch (error) {
     console.error("Products API error:", error);
-    // ✅ Always return JSON — never plain text
     return NextResponse.json(
       { success: false, error: "Failed to fetch products", products: [] },
       { status: 500 }

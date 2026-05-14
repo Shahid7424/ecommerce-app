@@ -21,7 +21,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [isWishlisted, setIsWishlisted] = React.useState(false);
   const [imageError, setImageError] = React.useState(false);
 
-  const formatPrice = (price: number) => `₹${price.toLocaleString("en-IN")}`;
+ const formatPrice = (price: number) => `$${price.toLocaleString("en-US")}`;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -135,7 +135,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Free delivery hint */}
-        {product.price >= 500 && product.inStock && (
+        {product.price >= 50 && product.inStock && (
           <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-slate-500">
             <Truck size={12} className="text-emerald-600" />
             <span className="font-semibold text-emerald-600">Free</span>{" "}
