@@ -111,26 +111,25 @@ export default function Footer() {
               </h2>
             </Link>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-400">
-              India&apos;s next-generation marketplace. Curated products,
-              honest prices, and a checkout that just works.
+              Next-generation marketplace. Curated products, honest prices, and a checkout that just works. Based in Hagerstown, Maryland 21740.
             </p>
 
             {/* Contact */}
             <ul className="mt-6 space-y-3 text-sm">
               <li className="flex items-start gap-3">
                 <MapPin size={16} className="mt-0.5 shrink-0 text-indigo-400" />
-                <span>Remote</span>
+                <span>Hagerstown, Maryland 21740</span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone size={16} className="shrink-0 text-indigo-400" />
                 <a href="tel:+911800123456" className="hover:text-white">
-                  +91 8948681079
+                  +1(888) 206-5831
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail size={16} className="shrink-0 text-indigo-400" />
                 <a href="mailto:support@shopease.in" className="hover:text-white">
-                  support@shopease.in
+                  support@shopease.com
                 </a>
               </li>
             </ul>

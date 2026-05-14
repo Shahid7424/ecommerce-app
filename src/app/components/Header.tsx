@@ -47,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({
         <div className="mx-auto flex h-9 max-w-7xl items-center justify-between px-4 text-xs sm:px-6 lg:px-8">
           <button className="flex items-center gap-1.5 hover:text-white">
             <MapPin size={12} />
-            <span className="hidden sm:inline">Deliver to Narnaund 126152</span>
+            <span className="hidden sm:inline">Deliver to Hagerstown MD, 21740</span>
             <span className="sm:hidden">Deliver here</span>
           </button>
           <div className="flex items-center gap-4">

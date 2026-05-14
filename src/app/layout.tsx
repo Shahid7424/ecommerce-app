@@ -17,38 +17,57 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  // ✅ One brand name everywhere — was "ShopKart" in layout but "ShopEase" in header
   title: {
-    default: "ShopEase — India's next-gen marketplace",
+    default: "ShopEase — Maryland's next-gen marketplace",
     template: "%s · ShopEase",
   },
+
   description:
-    "Shop electronics, fashion, home & more on ShopEase. Curated products, honest prices, free delivery over ₹500.",
+    "Shop electronics, fashion, home & more on ShopEase. Curated products, honest prices, and a seamless checkout experience.",
+
   keywords: [
     "ecommerce",
     "online shopping",
     "electronics",
     "fashion",
     "ShopEase",
-    "India",
+    "Maryland",
   ],
+
   authors: [{ name: "ShopEase" }],
-  openGraph: {
-    title: "ShopEase — India's next-gen marketplace",
-    description:
-      "Curated products, honest prices, free delivery over ₹500.",
-    type: "website",
-    locale: "en_IN",
+
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
+
+  openGraph: {
+    title: "ShopEase — Maryland's next-gen marketplace",
+    description:
+      "Curated products, honest prices, and a checkout that just works.",
+    type: "website",
+    locale: "en_US",
+    siteName: "ShopEase",
+    images: [
+      {
+        url: "/logo.png",
+        width: 1200,
+        height: 630,
+        alt: "ShopEase Logo",
+      },
+    ],
+  },
+
   twitter: {
     card: "summary_large_image",
     title: "ShopEase",
-    description: "India's next-gen marketplace",
+    description: "Maryland's next-gen marketplace",
+    images: ["/logo.png"],
   },
-  // Helps mobile browser theme chrome match the brand
+
   themeColor: "#4f46e5",
 };
-
 export default function RootLayout({
   children,
 }: {
